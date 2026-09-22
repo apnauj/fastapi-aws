@@ -1,0 +1,30 @@
+[Unit]
+Description=Daemon para la API de FastAPI en Docker (S3 Management)
+After=docker.service
+Requires=docker.service
+
+[Service]
+User=root
+Type=simple
+TimeoutStartSec=0
+Restart=always
+
+# Las variables de AWS vienen de aqui, no del repositorio
+EnvironmentFile=/etc/fastapi-docker.env
+
+# 1. Al arrancar, por seguridad, nos aseguramos de que no existan restos del contenedor anterior
+ExecStartPre=-/usr/bin/docker stop mi_api_contenedor
+ExecStartPre=-/usr/bin/docker rm mi_api_contenedor
+
+# 2. El comando principal que arranca tu API (Nota: Quitamos el '-d' y '--restart always' porque systemd ahora maneja el ciclo de vida)
+ExecStart=/usr/bin/docker run --name mi_api_contenedor \
+  -p 80:8000 \
+  -e AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME} \
+  -e AWS_REGION=${AWS_REGION} \
+  fastapi-s3
+
+# 3. Comando para cuando detengas el servicio de forma manual
+ExecStop=/usr/bin/docker stop mi_api_contenedor
+
+[Install]
+WantedBy=multi-user.target
